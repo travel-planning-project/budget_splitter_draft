@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+<div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow">
+
+  <button onclick="history.back()" class="mb-4 text-blue-600 hover:underline">⬅ Back</button>
+  <h1 class="text-2xl font-bold mb-4 text-blue-700">Trip Dashboard</h1>
+
+  <div id="namesContainer" class="space-y-2"></div>
+  <button onclick="saveNames()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Names</button>
+
+  <div id="tableContainer" class="mt-8 hidden">
+    <h2 class="text-xl font-semibold mb-4">Balances</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full border text-left">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="py-2 px-4">Name</th>
+            <th class="py-2 px-4">Spent</th>
+            <th class="py-2 px-4">Share</th>
+            <th class="py-2 px-4">Balance</th>
+          </tr>
+        </thead>
+        <tbody id="memberTable"></tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 flex flex-col sm:flex-row sm:space-x-4">
+      <button onclick="location.href='expense.html'" class="mt-2 sm:mt-0 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Go to Expense Page</button>
+      <button onclick="balanceOut()" class="mt-2 sm:mt-0 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Balance Out</button>
+    </div>
+
+    <div id="balanceContainer" class="mt-6"></div>
+  </div>
+</div>
+
+<script>
+const count = parseInt(localStorage.getItem('memberCount')||0);
+const namesContainer=document.getElementById('namesContainer');
+
+for(let i=0;i<count;i++){
+  namesContainer.innerHTML += `<div><label class="text-gray-700">Member ${i+1} name:</label>
+    <input id="member${i}" type="text" class="w-full p-2 border rounded"></div>`;
+}
+
+function saveNames(){
+  const names=[];
+  for(let i=0;i<count;i++){
+    names.push(document.getElementById('member'+i).value);
+  }
+  localStorage.setItem('memberNames', JSON.stringify(names));
+  const memberData = names.map(n=>({name:n,spent:0,share:0,balance:0}));
+  localStorage.setItem('memberData', JSON.stringify(memberData));
+  renderTable();
+}
+
+function renderTable(){
+  const memberData=JSON.parse(localStorage.getItem('memberData'));
+  const tbody=document.getElementById('memberTable');
+  tbody.innerHTML='';
+  if(!memberData) return;
+
+  const totalSpent = memberData.reduce((sum,m)=>sum+m.spent,0);
+  const share = totalSpent/memberData.length;
+
+  memberData.forEach(m=>{
+    m.share = share;
+    m.balance = m.spent - share;
+  });
+
+  localStorage.setItem('memberData',JSON.stringify(memberData));
+
+  memberData.forEach(m=>{
+    tbody.innerHTML += `<tr class="border-b">
+      <td class="py-2 px-4">${m.name}</td>
+      <td class="py-2 px-4">₹${m.spent}</td>
+      <td class="py-2 px-4">₹${m.share.toFixed(2)}</td>
+      <td class="py-2 px-4">₹${m.balance.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  document.getElementById('tableContainer').classList.remove('hidden');
+}
+
+// Balance Out function
+function balanceOut(){
+  const memberData = JSON.parse(localStorage.getItem('memberData'));
+  if(!memberData) return;
+
+  const debtors = memberData.filter(m=>m.balance<0).map(m=>({...m}));
+  const creditors = memberData.filter(m=>m.balance>0).map(m=>({...m}));
+
+  let transactions = [];
+
+  let i=0,j=0;
+  while(i<debtors.length && j<creditors.length){
+    const debtor = debtors[i];
+    const creditor = creditors[j];
+    const amount = Math.min(-debtor.balance, creditor.balance);
+
+    transactions.push(`${debtor.name} pays ₹${amount.toFixed(2)} to ${creditor.name}`);
+
+    debtor.balance += amount;
+    creditor.balance -= amount;
+
+    if(Math.abs(debtor.balance)<0.01) i++;
+    if(Math.abs(creditor.balance)<0.01) j++;
+  }
+
+  // Display results
+  const container = document.getElementById('balanceContainer');
+  container.innerHTML = `<h3 class="text-lg font-semibold mb-2">Balance Settlements:</h3>
+    <ul class="list-disc ml-5">${transactions.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+}
+
+if(localStorage.getItem('memberData')) renderTable();
+</script>
+</body>
+</html>

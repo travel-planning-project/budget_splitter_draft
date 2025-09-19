@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Expense Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          primary: "#1D4ED8",
+          "background-light": "#F3F4F6",
+          "background-dark": "#111827",
+          "card-light": "#FFFFFF",
+          "card-dark": "#1F2937",
+          "text-light": "#1F2937",
+          "text-dark": "#F3F4F6",
+          "subtext-light": "#6B7280",
+          "subtext-dark": "#9CA3AF",
+          "border-light": "#E5E7EB",
+          "border-dark": "#374151"
+        },
+        fontFamily: { display: ["Poppins", "sans-serif"] },
+        borderRadius: { DEFAULT: "0.5rem" },
+      },
+    },
+  };
+</script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark transition-colors duration-300">
+
+<div class="container mx-auto p-4 md:p-8">
+
+<header class="mb-8 flex justify-between items-center">
+  <h1 class="text-3xl font-bold text-primary">Jet Set Go</h1>
+  <div class="flex items-center space-x-2">
+    <span class="text-sm font-medium text-subtext-light dark:text-subtext-dark">Dark Mode</span>
+    <label class="relative inline-flex items-center cursor-pointer">
+      <input class="sr-only peer" onchange="document.documentElement.classList.toggle('dark')" type="checkbox"/>
+      <div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+    </label>
+  </div>
+</header>
+
+<div id="expensesContainer" class="space-y-6">
+  <!-- Expense cards will be dynamically added here -->
+</div>
+
+<div class="mt-8 flex justify-center">
+  <button onclick="addExpenseCard()" class="bg-primary text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-colors flex items-center space-x-2">
+    <span class="material-icons">add_circle</span>
+    <span>Add New Expense</span>
+  </button>
+</div>
+
+</div>
+
+<script>
+// Load members
+let members = JSON.parse(localStorage.getItem('memberNames') || '[]');
+let expenseData = JSON.parse(localStorage.getItem('expenseData') || '[]');
+
+function addExpenseCard(name='', amount=0, paidBy=members[0]||''){
+  const container = document.getElementById('expensesContainer');
+  const index = container.children.length + 1;
+
+  const card = document.createElement('div');
+  card.className = "bg-card-light dark:bg-card-dark p-6 rounded-lg shadow-md border border-border-light dark:border-border-dark";
+
+  card.innerHTML = `
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-xl font-semibold">Expense ${index}</h3>
+      <button onclick="deleteExpense(this)" class="text-subtext-light dark:text-subtext-dark hover:text-red-500">
+        <span class="material-icons">delete</span>
+      </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-subtext-light dark:text-subtext-dark">Expense Name</label>
+        <input class="mt-1 block w-full bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded p-2 expense-name" type="text" value="${name}" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-subtext-light dark:text-subtext-dark">Paid by</label>
+        <select class="mt-1 block w-full bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded p-2 expense-paidby">
+          ${members.map(m=>`<option ${m===paidBy?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-subtext-light dark:text-subtext-dark">Amount</label>
+        <div class="relative mt-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-subtext-light dark:text-subtext-dark">₹</span>
+          <input class="pl-7 block w-full bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded p-2 expense-amount" type="number" value="${amount}" />
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-md font-medium">Split Equally</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input checked class="sr-only split-equal" type="checkbox" />
+        <div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+      </label>
+    </div>
+    <div class="space-y-3 members-split">
+      ${members.map((m,i)=>`
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <input checked class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary member-check" data-member-index="${i}" type="checkbox"/>
+          <label class="ml-3 block text-sm font-medium">${m}</label>
+        </div>
+        <div class="w-1/3">
+          <label class="sr-only">Amount</label>
+          <div class="relative mt-1">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-subtext-light dark:text-subtext-dark">₹</span>
+            <input class="pl-7 block w-full bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded p-2 text-sm member-amount" type="number"/>
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>
+  `;
+  container.appendChild(card);
+
+  updateSplitAmounts(card);
+  attachEvents(card);
+}
+
+// Update split amounts
+function updateSplitAmounts(card){
+  const amountInput = card.querySelector('.expense-amount');
+  const splitCheckbox = card.querySelector('.split-equal');
+  const memberInputs = card.querySelectorAll('.member-amount');
+  const memberChecks = card.querySelectorAll('.member-check');
+
+  function recalc() {
+    const amount = parseFloat(amountInput.value) || 0;
+    if(splitCheckbox.checked){
+      const checkedCount = Array.from(memberChecks).filter(c=>c.checked).length;
+      const share = checkedCount ? amount/checkedCount : 0;
+      memberInputs.forEach((input,i)=>{ input.value = memberChecks[i].checked ? share.toFixed(2) : 0; });
+    }
+  }
+  amountInput.addEventListener('input', recalc);
+  splitCheckbox.addEventListener('change', recalc);
+  memberChecks.forEach(c=>c.addEventListener('change', recalc));
+  recalc();
+}
+
+// Attach events to inputs to save data
+function attachEvents(card){
+  const inputs = card.querySelectorAll('.expense-name, .expense-amount, .expense-paidby, .member-amount, .member-check, .split-equal');
+  inputs.forEach(inp=>inp.addEventListener('input', saveToLocalStorage));
+  inputs.forEach(inp=>inp.addEventListener('change', saveToLocalStorage));
+}
+
+// Delete expense
+function deleteExpense(button){
+  const card = button.closest('.bg-card-light, .bg-card-dark');
+  if(!card) return;
+  card.remove();
+
+  // Re-save remaining expenses
+  saveToLocalStorage();
+
+  // Re-number remaining expense cards
+  const cards = document.querySelectorAll('#expensesContainer > div');
+  cards.forEach((c, i)=>{
+    const title = c.querySelector('h3');
+    if(title) title.textContent = `Expense ${i+1}`;
+  });
+}
+
+// Save all expenses to localStorage
+function saveToLocalStorage(){
+  const cards = document.querySelectorAll('#expensesContainer > div');
+  const expenses = [];
+  cards.forEach(card=>{
+    const name = card.querySelector('.expense-name').value;
+    const amount = parseFloat(card.querySelector('.expense-amount').value) || 0;
+    const paidBy = card.querySelector('.expense-paidby').value;
+    const splitEqual = card.querySelector('.split-equal').checked;
+    const membersSplit = [];
+    card.querySelectorAll('.members-split > div').forEach((mDiv,i)=>{
+      const mName = members[i];
+      const mAmount = parseFloat(mDiv.querySelector('.member-amount').value) || 0;
+      membersSplit.push({name:mName, amount:mAmount});
+    });
+    expenses.push({name, amount, paidBy, splitEqual, membersSplit});
+  });
+  localStorage.setItem('expenseData', JSON.stringify(expenses));
+
+  // Also update spent per member for dashboard
+  let memberSpent = members.map(m=>({name:m, spent:0}));
+  expenses.forEach(exp=>{
+    const payerObj = memberSpent.find(m=>m.name===exp.paidBy);
+    if(payerObj) payerObj.spent += exp.amount;
+  });
+  localStorage.setItem('memberData', JSON.stringify(memberSpent));
+}
+
+// Load previous expenses if exist
+if(expenseData.length > 0){
+  expenseData.forEach(d=>{
+    addExpenseCard(d.name, d.amount, d.paidBy);
+  });
+} else if(members.length>0){
+  addExpenseCard();
+}
+</script>
+
+</body>
+</html>
